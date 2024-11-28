@@ -6,9 +6,9 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-public class Client implements Runnable {
+public class ThirdClient implements Runnable {
 
-    private Socket client;
+    private Socket ThirdClient;
     private BufferedReader in;
     private PrintWriter out;
     private boolean done;
@@ -16,9 +16,9 @@ public class Client implements Runnable {
     @Override
     public void run() {
         try {
-            client = new Socket("127.0.0.1", 9999);
-            out = new PrintWriter(client.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            ThirdClient = new Socket("127.0.0.1", 9999);
+            out = new PrintWriter(ThirdClient.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(ThirdClient.getInputStream()));
 
             InputHandler inHandler = new InputHandler();
             Thread t = new Thread(inHandler);
@@ -29,7 +29,7 @@ public class Client implements Runnable {
                 System.out.println(inMessage);
             }
         } catch (IOException e) {
-            // TODO: handle
+            // ignore
         }
     }
 
@@ -38,8 +38,8 @@ public class Client implements Runnable {
         try {
             in.close();
             out.close();
-            if (!client.isClosed()) {
-                client.close();
+            if (!ThirdClient.isClosed()) {
+                ThirdClient.close();
             }
         } catch (IOException e) {
             // ignore
@@ -69,7 +69,7 @@ public class Client implements Runnable {
     }
 
     public static void main(String[] args) {
-        Client client = new Client();
-        client.run();
+        ThirdClient ThirdClient = new ThirdClient();
+        ThirdClient.run();
     }
 }

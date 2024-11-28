@@ -8,7 +8,7 @@ import java.net.Socket;
 
 public class SecondClient implements Runnable {
 
-    private Socket client;
+    private Socket SecondClient;
     private BufferedReader in;
     private PrintWriter out;
     private boolean done;
@@ -16,9 +16,9 @@ public class SecondClient implements Runnable {
     @Override
     public void run() {
         try {
-            client = new Socket("127.0.0.1", 9999);
-            out = new PrintWriter(client.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            SecondClient = new Socket("127.0.0.1", 9999);
+            out = new PrintWriter(SecondClient.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(SecondClient.getInputStream()));
 
             InputHandler inHandler = new InputHandler();
             Thread t = new Thread(inHandler);
@@ -29,7 +29,7 @@ public class SecondClient implements Runnable {
                 System.out.println(inMessage);
             }
         } catch (IOException e) {
-            // TODO: handle
+            // ignore
         }
     }
 
@@ -38,8 +38,8 @@ public class SecondClient implements Runnable {
         try {
             in.close();
             out.close();
-            if (!client.isClosed()) {
-                client.close();
+            if (!SecondClient.isClosed()) {
+                SecondClient.close();
             }
         } catch (IOException e) {
             // ignore
@@ -51,6 +51,7 @@ public class SecondClient implements Runnable {
         public void run() {
             try {
                 BufferedReader inReader = new BufferedReader(new InputStreamReader(System.in));
+                System.out.println("Enter your message (/private <user> <message> for private, /quit to exit):");
                 while (!done) {
                     String message = inReader.readLine();
                     if (message.equals("/quit")) {
@@ -62,13 +63,13 @@ public class SecondClient implements Runnable {
                     }
                 }
             } catch (IOException e) {
-                // TODO: handle
+                // ignore
             }
         }
     }
 
     public static void main(String[] args) {
-        SecondClient secondClient = new SecondClient();
-        secondClient.run();
+        SecondClient SecondClient = new SecondClient();
+        SecondClient.run();
     }
 }
