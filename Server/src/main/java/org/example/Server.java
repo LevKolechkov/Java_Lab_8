@@ -11,6 +11,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -24,18 +25,40 @@ public class Server implements Runnable {
     private boolean done;
     private ExecutorService pool;
 
+    private String host;
+    private int port;
+
     public Server() {
         connections = new ArrayList<>();
         users = new HashMap<>();
         done = false;
+
+        loadConfig();
+    }
+
+    private void loadConfig() {
+        Properties properties = new Properties();
+        try (var input = getClass().getClassLoader().getResourceAsStream("application.properties")) {
+            if (input == null) {
+                throw new IOException("Configuration file 'application.properties' not found in resources.");
+            }
+            properties.load(input);
+
+            host = properties.getProperty("server.host", "127.0.0.1");
+            port = Integer.parseInt(properties.getProperty("server.port", "9999"));
+
+            logger.info("Configuration loaded: host={}, port={}", host, port);
+        } catch (IOException e) {
+            logger.error("Failed to load configuration: ", e);
+            System.exit(1);
+        }
     }
 
     @Override
     public void run() {
         try {
-            int port = 9999;
             server = new ServerSocket(port);
-            logger.info("Server has been started. Port: {}", port);
+            logger.info("Server has been started. Host: {}, Port: {}", host, port);
             pool = Executors.newCachedThreadPool();
             while (!done) {
                 Socket client = server.accept();
@@ -44,7 +67,7 @@ public class Server implements Runnable {
                 pool.execute(handler);
             }
         } catch (IOException e) {
-            logger.error("Error with starting server: ", e);
+            logger.error("Error starting server: ", e);
             shutdown();
         }
     }
@@ -84,7 +107,7 @@ public class Server implements Runnable {
             }
             logger.info("Server has been stopped.");
         } catch (Exception e) {
-            logger.error("Error while starting the server: ", e);
+            logger.error("Error shutting down the server: ", e);
         }
     }
 
@@ -143,7 +166,7 @@ public class Server implements Runnable {
                     }
                 }
             } catch (IOException e) {
-                logger.error("Error while working with client: ", e);
+                logger.error("Error working with client: ", e);
                 shutdown();
             }
         }
@@ -160,7 +183,7 @@ public class Server implements Runnable {
                 }
                 logger.info("User {} disconnected.", nickname);
             } catch (IOException e) {
-                logger.error("Error while working with client: ", e);
+                logger.error("Error shutting down client: ", e);
             }
         }
 
