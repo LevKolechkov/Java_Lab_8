@@ -1,5 +1,8 @@
 package org.example;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,6 +15,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server implements Runnable {
+
+    private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
     private ArrayList<ConnectionHandler> connections;
     private HashMap<String, ConnectionHandler> users;
@@ -30,7 +35,7 @@ public class Server implements Runnable {
         try {
             int port = 9999;
             server = new ServerSocket(port);
-            System.out.println("Сервер запущен. Порт: " + port);
+            logger.info("Server has been started. Port: {}", port);
             pool = Executors.newCachedThreadPool();
             while (!done) {
                 Socket client = server.accept();
@@ -39,11 +44,13 @@ public class Server implements Runnable {
                 pool.execute(handler);
             }
         } catch (IOException e) {
+            logger.error("Error with starting server: ", e);
             shutdown();
         }
     }
 
     public void broadcast(String message) {
+        logger.info("Broadcast message: {}", message);
         for (ConnectionHandler ch : connections) {
             if (ch != null) {
                 ch.sendMessage(message);
@@ -54,8 +61,10 @@ public class Server implements Runnable {
     public void privateMessage(String recipient, String message, String sender) {
         ConnectionHandler ch = users.get(recipient);
         if (ch != null) {
+            logger.info("Private message from {} to {}: {}", sender, recipient, message);
             ch.sendMessage("[Private] " + sender + ": " + message);
         } else {
+            logger.warn("User {} not found. Sender: {}", recipient, sender);
             ConnectionHandler senderHandler = users.get(sender);
             if (senderHandler != null) {
                 senderHandler.sendMessage("User " + recipient + " not found.");
@@ -73,8 +82,9 @@ public class Server implements Runnable {
             for (ConnectionHandler ch : connections) {
                 ch.shutdown();
             }
+            logger.info("Server has been stopped.");
         } catch (Exception e) {
-            // ignore
+            logger.error("Error while starting the server: ", e);
         }
     }
 
@@ -99,20 +109,21 @@ public class Server implements Runnable {
                 synchronized (users) {
                     users.put(nickname, this);
                 }
-                System.out.println(nickname + " connected!");
+                logger.info("User {} connected.", nickname);
                 broadcast(nickname + " joined the chat!");
                 String message;
                 while ((message = in.readLine()) != null) {
                     if (message.startsWith("/nick ")) {
                         String[] messageSplit = message.split(" ", 2);
                         if (messageSplit.length == 2) {
-                            broadcast(nickname + " renamed themselves to " + messageSplit[1]);
+                            String oldNick = nickname;
                             synchronized (users) {
                                 users.remove(nickname);
                                 nickname = messageSplit[1];
                                 users.put(nickname, this);
                             }
-                            out.println("Successfully changed nickname to " + nickname);
+                            logger.info("User {} renamed to {}", oldNick, nickname);
+                            broadcast(oldNick + " renamed themselves to " + nickname);
                         } else {
                             out.println("No nickname provided");
                         }
@@ -132,6 +143,7 @@ public class Server implements Runnable {
                     }
                 }
             } catch (IOException e) {
+                logger.error("Error while working with client: ", e);
                 shutdown();
             }
         }
@@ -146,8 +158,9 @@ public class Server implements Runnable {
                 synchronized (users) {
                     users.remove(nickname);
                 }
+                logger.info("User {} disconnected.", nickname);
             } catch (IOException e) {
-                // ignore
+                logger.error("Error while working with client: ", e);
             }
         }
 
